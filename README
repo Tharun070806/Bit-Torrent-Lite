@@ -1,0 +1,7 @@
+This is A Mini Bit-Torrent Project in C++ . Currently It is just The Protoype . It will Be scaled further in the Future.
+
+
+It has Two Files: 
+
+    Tracker.cpp
+    Peer.cpp

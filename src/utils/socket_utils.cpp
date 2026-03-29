@@ -1,4 +1,4 @@
-#include "socket_utils.h"
+#include "socket_utils.hpp"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -47,7 +47,7 @@ int create_server_socket(int port){
 
 }
 
-int connect_to(const string &host, int port){
+int connect_to(const string &host, int port,int client_port){
 
     addrinfo addr{}, *pnt;
     addr.ai_family=AF_INET;
@@ -58,7 +58,17 @@ int connect_to(const string &host, int port){
         return -1;
     }
 
-    int fd= socket(AF_INET, SOCK_STREAM,0);
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in client_addr{};
+client_addr.sin_family = AF_INET;
+client_addr.sin_addr.s_addr = INADDR_ANY;  // any local network interface
+client_addr.sin_port = htons(client_port);        // YOUR port
+
+if (bind(fd, (struct sockaddr*)&client_addr, sizeof(client_addr)) < 0) {
+    std::cerr << "bind failed\n";
+    close(fd);
+    return -1;
+}
     
     if(connect(fd, pnt->ai_addr, pnt->ai_addrlen)<0){
         freeaddrinfo(pnt);
@@ -97,18 +107,17 @@ bool send_all(int fd , const void* buf, size_t n){
     return true;
 }
 
-void receiving_header(int fd, string &s){
+void recv_inf(std::string &response, char*buffer,int socket){
+        
+        int bytes;
 
-    char c;
-
-    while(true){
-        if(!recv_exact(fd,&c,1)) break;
-        s+=c;
-        if(s.size()>=4){
-            if(s.substr(s.size()-4)=="\r\n\r\n") break;
+        while ((bytes = recv(socket, buffer, sizeof(buffer), 0)) > 0) {
+             response.append(buffer, bytes);
         }
     }
 
+void close_socket(int socket){
+    close(socket);
 }
 
 

@@ -5,4 +5,4 @@ CXXFLAGS = -std=c++23 -mmacosx-version-min=26.0 -pthread \
            -lssl -lcrypto
 
 all:
-	$(CXX) $(CXXFLAGS) src/main.cpp src/Parser/decoder.cpp src/utils/hasher.cpp -o a.out
+	$(CXX) $(CXXFLAGS) src/main.cpp src/Parser/decoder.cpp src/utils/hasher.cpp src/Requestor/requestor.cpp src/utils/socket_utils.cpp -o a.out

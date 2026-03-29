@@ -15,6 +15,8 @@ struct Torrent {
     int64_t info_start = 0;
     int64_t info_end = 0;
 
+    std::string info_raw;
+
     std::vector<std::string> pieces;
 };
 

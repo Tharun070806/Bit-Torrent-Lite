@@ -104,7 +104,7 @@ void parse_info_dict(const std::string& data, size_t& pos, Torrent& t) {
     pos++; // skip 'e'
 }
 
-// ─── Parse the whole torrent file ────────────────────────────────────────────
+// ─── Parse the whole torrent file
 
 Torrent parse_torrent(const std::string& data) {
     Torrent t;
@@ -130,7 +130,7 @@ Torrent parse_torrent(const std::string& data) {
     return t;
 }
 
-// ─── Print everything ─────────────────────────────────────────────────────────
+// ─── Print everything 
 
 void print_torrent(const Torrent& t) {
     std::cout << "Tracker URL  : " << t.announce      << "\n";

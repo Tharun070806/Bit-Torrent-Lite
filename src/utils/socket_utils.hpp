@@ -5,12 +5,12 @@ using namespace std;
 
 int create_server_socket(int port);
 
-int connect_to(const string&host, int port );
+int connect_to(const string &host, int port,int client_port);
 
 bool recv_exact(int fd, void* buf, size_t n);
 
 bool send_all(int fd, const void* buf, size_t n);
 
-void receving_header(int fd, string &s);
+void recv_inf(std::string &response, char*buffer,int socket);
 
-string get_peer_ip(int fd);
+void close_socket(int socket);

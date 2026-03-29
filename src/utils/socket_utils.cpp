@@ -97,4 +97,18 @@ bool send_all(int fd , const void* buf, size_t n){
     return true;
 }
 
+void receiving_header(int fd, string &s){
+
+    char c;
+
+    while(true){
+        if(!recv_exact(fd,&c,1)) break;
+        s+=c;
+        if(s.size()>=4){
+            if(s.substr(s.size()-4)=="\r\n\r\n") break;
+        }
+    }
+
+}
+
 

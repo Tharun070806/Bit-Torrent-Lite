@@ -1,10 +1,8 @@
 CXX      = g++-15
-CXXFLAGS = -std=c++23 -mmacosx-version-min=26.0 -pthread
+CXXFLAGS = -std=c++23 -mmacosx-version-min=26.0 -pthread \
+           -I/opt/homebrew/opt/openssl/include \
+           -L/opt/homebrew/opt/openssl/lib \
+           -lssl -lcrypto
 
-SRC = src/tracker.cpp src/peer.cpp 
-
-tracker: $(SRC) src/tracker.cpp
-	$(CXX) $(CXXFLAGS) $(SRC) src/tracker.cpp -o tracker
-
-peer: $(SRC) src/peer.cpp
-	$(CXX) $(CXXFLAGS) $(SRC) src/peer.cpp -o peer
+all:
+	$(CXX) $(CXXFLAGS) src/main.cpp src/Parser/decoder.cpp src/utils/hasher.cpp -o a.out

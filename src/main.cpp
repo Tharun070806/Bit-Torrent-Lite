@@ -51,9 +51,18 @@ int main(int argc, char* argv[]) {
 
         std::cout<<response<<std::endl;
         close_socket(socket);
+        int pos=response.find("\r\n\r\n");
+        std::string body = response.substr(pos+4);
+        Peerlist peers;
+        size_t dumpos=0;
+        parse_response_dict(body,dumpos,peers);
+        print_response(peers);
+
+        
+
 
 
     }
 
     return 0;
-}
+};

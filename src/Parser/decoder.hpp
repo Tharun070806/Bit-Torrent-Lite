@@ -4,6 +4,13 @@
 #include <vector>
 #include <cstdint>
 
+struct Peerlist {
+    int64_t complete=0;
+    int64_t incomplete=0;
+    int interval=0;
+    int mininterval=0;
+    std::vector<std::string>peers;
+};
 struct Torrent {
     std::string announce;
     std::string created_by;
@@ -32,3 +39,5 @@ Torrent parse_torrent(const std::string& data);
 std::string hexconverter(const std::string& hash);
 
 void print_torrent(const Torrent& t);
+void parse_response_dict(const std::string& data, size_t& pos, Peerlist &t);
+void print_response(const Peerlist& t);

@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 
-struct Peerlist {
+struct TrackerResponse {
     int64_t complete=0;
     int64_t incomplete=0;
     int interval=0;
@@ -39,5 +39,5 @@ Torrent parse_torrent(const std::string& data);
 std::string hexconverter(const std::string& hash);
 
 void print_torrent(const Torrent& t);
-void parse_response_dict(const std::string& data, size_t& pos, Peerlist &t);
-void print_response(const Peerlist& t);
+void parse_response_dict(const std::string& data, size_t& pos, TrackerResponse &t);
+void print_response(const TrackerResponse& t);

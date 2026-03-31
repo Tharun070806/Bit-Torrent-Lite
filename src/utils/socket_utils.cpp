@@ -107,6 +107,8 @@ bool send_all(int fd , const void* buf, size_t n){
     return true;
 }
 
+//When we dont know what is the length of the message incoming use recv_info
+
 void recv_inf(std::string &response, char*buffer,int socket){
         
         int bytes;

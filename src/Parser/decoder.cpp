@@ -135,7 +135,7 @@ Torrent parse_torrent(const std::string& data) {
     return t;
 }
 
-void parse_response_dict(const std::string& data, size_t& pos, Peerlist &t) {
+void parse_response_dict(const std::string& data, size_t& pos, TrackerResponse &t) {
     pos++; // skip 'd'
     while (pos < data.size() && data[pos] != 'e') {
         std::string key = read_string(data, pos);
@@ -164,10 +164,6 @@ void parse_response_dict(const std::string& data, size_t& pos, Peerlist &t) {
                     unsigned short port=e<<8 | f;
 
                     std::string ip=std::to_string(a)+"."+std::to_string(b)+"."+std::to_string(c)+"."+std::to_string(d)+":"+std::to_string(port);
-                    // convert each hash to hex string for easy use
-                    
-                    // std::string hex=hexconverter(orig);
-                    // for(int j=0;j+2)
                     t.peers.push_back(ip);
                 
                 }
@@ -192,7 +188,7 @@ void print_torrent(const Torrent& t) {
         std::cout << "  [" << i + 1 << "] " << t.pieces[i] << "\n";
     }
 }
-void print_response(const Peerlist& t) {
+void print_response(const TrackerResponse& t) {
     std::cout << "complete  : " << t.complete      << "\n";
     std::cout << "incomplete   : " << t.incomplete    << "\n";
     std::cout << "interval    : " << t.interval          << "\n";

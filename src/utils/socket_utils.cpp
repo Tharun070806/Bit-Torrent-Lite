@@ -47,7 +47,7 @@ int create_server_socket(int port){
 
 }
 
-int connect_to(const string &host, int port,int client_port){
+int connect_to(const string &host, int port){
 
     addrinfo addr{}, *pnt;
     addr.ai_family=AF_INET;
@@ -59,16 +59,6 @@ int connect_to(const string &host, int port,int client_port){
     }
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in client_addr{};
-client_addr.sin_family = AF_INET;
-client_addr.sin_addr.s_addr = INADDR_ANY;  // any local network interface
-client_addr.sin_port = htons(client_port);        // YOUR port
-
-if (bind(fd, (struct sockaddr*)&client_addr, sizeof(client_addr)) < 0) {
-    std::cerr << "bind failed\n";
-    close(fd);
-    return -1;
-}
     
     if(connect(fd, pnt->ai_addr, pnt->ai_addrlen)<0){
         freeaddrinfo(pnt);
@@ -95,9 +85,47 @@ bool recv_exact(int fd, void* buf, size_t n){
     return true;
 }
 
+std::string recv_exact(int socket_fd, size_t size) {
+    std::string data(size, '\0');
+    size_t read_offset = 0;
+    while (read_offset < size) {
+        ssize_t bytes_read = recv(socket_fd, data.data() + read_offset, size - read_offset, 0);
+        if (bytes_read == 0) {
+            throw std::runtime_error("Connection closed before receiving expected data");
+        }
+        if (bytes_read < 0) {
+            throw std::runtime_error("Failed to read peer response: " + std::string(std::strerror(errno)));
+        }
+        read_offset += static_cast<size_t>(bytes_read);
+    }
+    return data;
+}
+void write_all(int socket_fd, const std::string& data) {
+    size_t written = 0;
+    while (written < data.size()) {
+        ssize_t bytes_written = send(socket_fd, data.data() + written, data.size() - written, 0);
+        if (bytes_written <= 0) {
+            throw std::runtime_error("Failed to write to socket: " + std::string(std::strerror(errno)));
+        }
+        written += static_cast<size_t>(bytes_written);
+    }
+}
+
 bool send_all(int fd , const void* buf, size_t n){
     size_t sent = 0;
     const uint8_t* ptr = (const uint8_t*)buf;
+
+    while (sent < n) {
+        ssize_t s = send(fd, ptr + sent, n - sent, 0);
+        if (s <= 0) return false;
+        sent += s;
+    }
+    return true;
+}
+
+bool send_all(int fd , std::string &message, size_t n){
+    size_t sent = 0;
+    const char* ptr = message.data();
 
     while (sent < n) {
         ssize_t s = send(fd, ptr + sent, n - sent, 0);
@@ -117,6 +145,21 @@ void recv_inf(std::string &response, char*buffer,int socket){
              response.append(buffer, bytes);
         }
     }
+
+    std::string recv_inf(int socket_fd) {
+    std::string data;
+    std::array<char, 4096> buffer{};
+    while (true) {
+        ssize_t bytes_read = recv(socket_fd, buffer.data(), buffer.size(), 0);
+        if (bytes_read == 0) {
+            return data;
+        }
+        if (bytes_read < 0) {
+            throw std::runtime_error("Failed to read tracker response: " + std::string(std::strerror(errno)));
+        }
+        data.append(buffer.data(), static_cast<size_t>(bytes_read));
+    }
+}
 
 void close_socket(int socket){
     close(socket);

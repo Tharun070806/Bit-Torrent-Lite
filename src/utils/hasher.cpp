@@ -8,12 +8,28 @@
 
 
 
-std::string sha1(const std::string& input,Torrent &t) {
+std::string sha1(const std::string& input) {
     unsigned char hash[SHA_DIGEST_LENGTH];
     SHA1(reinterpret_cast<const unsigned char*>(input.c_str()), input.size(), hash);
     std::string raw(reinterpret_cast<char*>(hash), SHA_DIGEST_LENGTH);
-    t.info_raw=raw;
+
     
     // return raw;
     return hexconverter(raw);
+}
+
+
+std::string extract_host(const std::string& url) {
+    size_t start = url.find("://");
+    
+    if (start == std::string::npos) return ""; // invalid URL
+    start += 3; // skip "://"
+
+    size_t end = url.find('/', start);
+
+    if (end == std::string::npos) {
+        return url.substr(start); // no path, only host
+    }
+
+    return url.substr(start, end - start);
 }

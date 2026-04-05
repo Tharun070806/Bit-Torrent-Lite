@@ -2,6 +2,7 @@
 #include<iostream>
 #include<string>
 #include "../Parser/decoder.hpp"
+#include "../utils/socket_utils.hpp"
 
 struct handshake{
     char byte19 = 19;
@@ -13,3 +14,4 @@ struct handshake{
 
 void info_hashadder(handshake&h, Torrent &t);
 void peer_idadder(handshake&h, std::string &peerid);
+std::string requestpeer(handshake &h, std::string peerip, int peerport);

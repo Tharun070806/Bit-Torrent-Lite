@@ -23,6 +23,12 @@
         "string_view": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp",
+        "iostream": "cpp",
+        "unordered_map": "cpp",
+        "condition_variable": "cpp",
+        "ios": "cpp"
     }
 }

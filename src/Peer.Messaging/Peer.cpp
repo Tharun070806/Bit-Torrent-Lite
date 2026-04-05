@@ -7,12 +7,14 @@
 #include <unistd.h>
 #include <cstring>
 #include <arpa/inet.h>
-#include "../utils/socket_utils.hpp"
-#include "./Controller/Controller.cpp"
+#include "../Controller/Controller.cpp"
 #include "./Peer.handshake.hpp"
+#include "./Peer.Messaging.hpp"
+
 
 
 struct PeerState {
+    public:
     bool am_choking      = true;
     bool am_interested   = false;
     bool peer_choking    = true;
@@ -22,27 +24,27 @@ struct PeerState {
     std::vector<IncomingRequest> incoming_requests;
 };
 
+/*
+Format of Messges 
+[..length_prefix_4bytes][..Message_id..1Byte][..Payload..variableSize]
+*/
+
+/*
+Format Of Payload;
+[..PeiceIndex..4bytes][..Block..4bytes][..Data..]
+*/
+
+/*
+This Function Basically:
+    note: if peer is choking then dont ask , if you are seeder , if you are not interested
+    1 -> Gets the Request Object by asking the Manager
+    2 -> Constructs the Build Request Message using helper function
+    3 -> sends the message and updates the pending requests
+*/  
 
 
-inline std::vector<uint8_t> build_piece_msg(int piece_index, int block_offset,
-                                             const std::string& data) {
-    std::vector<uint8_t> payload(8 + data.size());
-    uint32_t pi  = htonl(piece_index);
-    uint32_t off = htonl(block_offset);
-    memcpy(payload.data(),     &pi,         4);
-    memcpy(payload.data() + 4, &off,        4);
-    memcpy(payload.data() + 8, data.data(), data.size());
-    return build_message(MsgId::Piece, payload);
-}
 
-inline std::vector<uint8_t> build_have(int piece_index) {
-    std::vector<uint8_t> payload(4);
-    uint32_t pi = htonl(piece_index);
-    memcpy(payload.data(), &pi, 4);
-    return build_message(MsgId::Have, payload);
-}
-
-void request_next_blocks(int fd, PeerState& state, Manager& manager,
+void request_next_blocks(int fd, PeerState& state, Controller& manager,
                          const std::string& peer_ip, int pipeline = 5) {
     if (manager.mode == Mode::SEEDER) return; // seeder never requests
     if (state.peer_choking)  return;
@@ -54,7 +56,10 @@ void request_next_blocks(int fd, PeerState& state, Manager& manager,
 
         auto msg = build_request(req->piece_index, req->block_offset,
                                  req->block_length);
-        if (!send_bytes(fd, msg)) {
+
+        // build_request return a vector<1byte> message //
+
+        if (!send_all(fd, msg.data(),msg.size())) {
             manager.release_in_flight(req->piece_index, req->block_offset);
             break;
         }
@@ -62,7 +67,7 @@ void request_next_blocks(int fd, PeerState& state, Manager& manager,
     }
 }
 
-void serve_incoming_requests(int fd, PeerState& state, Manager& manager,
+void serve_incoming_requests(int fd, PeerState& state, Controller& manager,
                               const std::string& peer_ip) {
     if (state.am_choking) return;
 
@@ -70,12 +75,13 @@ void serve_incoming_requests(int fd, PeerState& state, Manager& manager,
          it != state.incoming_requests.end(); ) {
 
         std::string block = manager.get_block(it->piece_index,
-                                               it->block_offset,
-                                               it->block_length);
+                                               it->block_offset);
+
         if (block.empty()) { ++it; continue; }
 
         auto msg = build_piece_msg(it->piece_index, it->block_offset, block);
-        if (!send_bytes(fd, msg)) break;
+
+        if (!send_all(fd, msg.data(),msg.size())) break;
 
         std::cout << "[" << peer_ip << "] served piece="
                   << it->piece_index << " offset=" << it->block_offset << "\n";
@@ -83,31 +89,32 @@ void serve_incoming_requests(int fd, PeerState& state, Manager& manager,
     }
 }
 
-void flush_haves(int fd, int peer_id, Manager& manager,
+void flush_haves(int fd, int peer_id, Controller& manager,
                  const std::string& peer_ip) {
     for (int pi : manager.drain_haves(peer_id)) {
-        if (!send_bytes(fd, build_have(pi))) return;
+        auto msg=build_have(pi);
+        if (!send_all(fd, msg.data(),msg.size())) return;
         std::cout << "[" << peer_ip << "] sent Have " << pi << "\n";
     }
 }
 
-// ── Core message loop — shared by inbound and outbound ────────────────────
+// ── Core message loop — shared by inbound and outbound
 void run_peer_loop(int fd, int peer_id, PeerState& state,
-                   Manager& manager, const std::string& peer_ip) {
+                   Controller& manager, const std::string& peer_ip) {
 
-    // seeder never wants anything
     bool should_express_interest = (manager.mode == Mode::LEECHER);
 
     // send our bitfield
     {
         auto bf     = manager.get_bitfield();
         auto bf_msg = build_message(MsgId::Bitfield, bf);
-        send_bytes(fd, bf_msg);
+        send_all(fd, bf_msg.data(),bf_msg.size());
     }
 
     // leecher signals interest upfront
     if (should_express_interest) {
-        send_bytes(fd, build_message(MsgId::Interested));
+        auto int_msg=build_message(MsgId::Interested);
+        send_all(fd,int_msg.data(),int_msg.size());
         state.am_interested = true;
     }
 
@@ -115,14 +122,19 @@ void run_peer_loop(int fd, int peer_id, PeerState& state,
         // exit condition depends on mode
         if (manager.mode == Mode::LEECHER && manager.all_done()) break;
 
-        flush_haves(fd, peer_id, manager, peer_ip);
+        // NOTE: serve_incoming_request is reduntant , because rechnically every request is served instanly before itself
+
+        flush_haves(fd, peer_id, manager, peer_ip); //send all the have messages (this is not reduntant)
+
         serve_incoming_requests(fd, state, manager, peer_ip);
 
         auto msg_opt = read_message(fd);
+
         if (!msg_opt) {
             std::cerr << "[" << peer_ip << "] disconnected\n";
             break;
         }
+
         auto& msg = *msg_opt;
 
         switch (msg.id) {
@@ -148,14 +160,14 @@ void run_peer_loop(int fd, int peer_id, PeerState& state,
             case MsgId::Interested:
                 state.peer_interested = true;
                 state.am_choking      = false;
-                send_bytes(fd, build_message(MsgId::Unchoke));
+                send_all(fd,build_message(MsgId::Unchoke) );
                 serve_incoming_requests(fd, state, manager, peer_ip);
                 break;
 
             case MsgId::NotInterested:
                 state.peer_interested = false;
                 state.am_choking      = true;
-                send_bytes(fd, build_message(MsgId::Choke));
+                send_all(fd,build_message(MsgId::Choke));
                 break;
 
             case MsgId::Have: {
@@ -171,7 +183,8 @@ void run_peer_loop(int fd, int peer_id, PeerState& state,
                     if (req) {
                         manager.release_in_flight(req->piece_index,
                                                   req->block_offset);
-                        send_bytes(fd, build_message(MsgId::Interested));
+                        auto int_msg=build_message(MsgId::Interested);
+                        send_all(fd,int_msg.data(),int_msg.size() );
                         state.am_interested = true;
                     }
                 }
@@ -194,11 +207,12 @@ void run_peer_loop(int fd, int peer_id, PeerState& state,
                         manager.release_in_flight(req->piece_index,
                                                   req->block_offset);
                         if (!state.am_interested) {
-                            send_bytes(fd, build_message(MsgId::Interested));
+                            auto int_msg=build_message(MsgId::Interested);
+                            send_all(fd, int_msg.data(),int_msg.size());
                             state.am_interested = true;
                         }
                     } else {
-                        send_bytes(fd, build_message(MsgId::NotInterested));
+                        send_all(fd, build_message(MsgId::NotInterested));
                         state.am_interested = false;
                     }
                 }
@@ -247,11 +261,8 @@ void run_peer_loop(int fd, int peer_id, PeerState& state,
                     state.pending_requests.end()
                 );
 
-                bool piece_done = manager.block_received(
-                    piece_index, block_offset, block_data);
-                if (piece_done)
-                    std::cout << "[" << peer_ip << "] piece "
-                              << piece_index << " done!\n";
+                bool piece_done = manager.received_block(piece_index, block_offset, block_data);
+                if (piece_done) std::cout << "[" << peer_ip << "] piece "<< piece_index << " done!\n";
 
                 request_next_blocks(fd, state, manager, peer_ip);
                 break;
@@ -282,8 +293,7 @@ void run_peer_loop(int fd, int peer_id, PeerState& state,
     }
 }
 
-// ── Outbound peer (we initiate connection) ────────────────────────────────
-void peer_worker(int fd, const handshake& h, Manager& manager,
+void peer_worker(int fd, const handshake& h, Controller& manager,
                  const std::string& peer_ip, int peer_port) {
 
     int peer_id = manager.register_peer();
@@ -293,10 +303,10 @@ void peer_worker(int fd, const handshake& h, Manager& manager,
     // send handshake
     unsigned char hs[68]; int ptr = 0;
     hs[ptr++] = h.byte19;
-    memcpy(hs + ptr, h.protocol,  19); ptr += 19;
-    memcpy(hs + ptr, h.zero,       8); ptr += 8;
-    memcpy(hs + ptr, h.info_hash, 20); ptr += 20;
-    memcpy(hs + ptr, h.peer_id,   20);
+    memcpy(hs + ptr, h.protocol.data(),  19); ptr += 19;
+    memcpy(hs + ptr, h.zero.data(),       8); ptr += 8;
+    memcpy(hs + ptr, h.info_hash.data(), 20); ptr += 20;
+    memcpy(hs + ptr, h.peer_id.data(),   20);
     if (send(fd, hs, 68, 0) != 68) goto cleanup;
 
     // recv handshake
@@ -307,7 +317,7 @@ void peer_worker(int fd, const handshake& h, Manager& manager,
             if (r <= 0) goto cleanup;
             got += r;
         }
-        if (memcmp(hr + 28, h.info_hash, 20) != 0) goto cleanup;
+        if (memcmp(hr + 28, h.info_hash.data(), 20) != 0) goto cleanup;
         std::cout << "[" << peer_ip << "] handshake OK\n";
     }
 
@@ -320,8 +330,8 @@ cleanup:
     close(fd);
 }
 
-// ── Inbound peer (they initiate connection) ───────────────────────────────
-void inbound_peer_worker(int fd, const handshake& h, Manager& manager,
+// Inbound peer (they initiate connection)
+void inbound_peer_worker(int fd, const handshake& h, Controller& manager,
                          const std::string& peer_ip) {
 
     int peer_id = manager.register_peer();
@@ -337,16 +347,16 @@ void inbound_peer_worker(int fd, const handshake& h, Manager& manager,
     }
     if (hr[0] != 19) goto cleanup;
     if (memcmp(hr + 1, "BitTorrent protocol", 19) != 0) goto cleanup;
-    if (memcmp(hr + 28, h.info_hash, 20) != 0) goto cleanup;
+    if (memcmp(hr + 28, h.info_hash.data(), 20) != 0) goto cleanup;
 
     // send our handshake back
     {
         unsigned char hs[68]; int ptr = 0;
         hs[ptr++] = h.byte19;
-        memcpy(hs + ptr, h.protocol,  19); ptr += 19;
-        memcpy(hs + ptr, h.zero,       8); ptr += 8;
-        memcpy(hs + ptr, h.info_hash, 20); ptr += 20;
-        memcpy(hs + ptr, h.peer_id,   20);
+        memcpy(hs + ptr, h.protocol.data(),  19); ptr += 19;
+        memcpy(hs + ptr, h.zero.data(),       8); ptr += 8;
+        memcpy(hs + ptr, h.info_hash.data(), 20); ptr += 20;
+        memcpy(hs + ptr, h.peer_id.data(),   20);
         if (send(fd, hs, 68, 0) != 68) goto cleanup;
     }
 

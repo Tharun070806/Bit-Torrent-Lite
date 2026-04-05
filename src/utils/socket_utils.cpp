@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include<vector>
 #include <unistd.h>
 #include <cstring>
 #include <stdexcept>
@@ -109,6 +110,11 @@ void write_all(int socket_fd, const std::string& data) {
         }
         written += static_cast<size_t>(bytes_written);
     }
+}
+
+bool send_all(int fd, std::vector<uint8_t>arr){
+    int n=arr.size();
+    return send_all(fd,arr.data(),n);
 }
 
 bool send_all(int fd , const void* buf, size_t n){

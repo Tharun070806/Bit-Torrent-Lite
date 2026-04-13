@@ -3,9 +3,45 @@
 #include <fstream>
 #include <sstream>
 #include<unordered_map>
+#include "../utils/hasher.hpp"
 // ─── File reader 
 
+// Helper to convert binary SHA1 to hex string if needed
+// Torrent files use binary strings for the 'pieces' field, but hex is common for debugging
 
+void create_torrent(const std::string& filename, const std::string& tracker_url) {
+    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) return;
+
+    long long file_size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    int cnt=0;
+    // Standard piece length is 32KB (32768 bytes)
+    const size_t piece_length = 32768;
+    std::string all_pieces_hashes = "";
+
+    std::vector<char> buffer(piece_length);
+    while (file.read(buffer.data(), piece_length) || file.gcount() > 0) {
+        size_t bytes_read = file.gcount();
+        std::vector<char> current_piece(buffer.begin(), buffer.begin() + bytes_read);
+        all_pieces_hashes += sha1_withouthex(current_piece.data(),bytes_read);
+        cnt++;
+    }
+
+    // Manual Bencoding for a single file torrent
+    std::ofstream out(filename + ".torrent");
+    out << "d"
+        << "8:announce" << tracker_url.length() << ":" << tracker_url
+        << "4:info" << "d"
+            << "6:length" << "i" << file_size << "e"
+            << "4:name" << filename.length() << ":" << filename
+            << "12:piece length" << "i" << piece_length << "e"
+            << "6:pieces" << all_pieces_hashes.size() << ":" << all_pieces_hashes
+        << "e"
+    << "e";
+
+    std::cout << "Successfully created: " << filename << ".torrent" << std::endl;
+}
 
 std::string read_file(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary);
@@ -84,19 +120,26 @@ void parse_info_dict(const std::string& data, size_t& pos, Torrent& t) {
 
         if (key == "length") {
             t.length = read_integer(data, pos);
+            std::cout<<t.length<<" This is the length"<<std::endl;
         } else if (key == "name") {
             t.name = read_string(data, pos);
+            std::cout<<t.name<<" This is the name"<<std::endl;
         } else if (key == "piece length") {
             t.piece_length = read_integer(data, pos);
+            std::cout<<t.piece_length<<" This is the piece_length"<<std::endl;
         } else if (key == "pieces") {
+            std::cout<<" starting pieces"<<std::endl;
             // pieces is one big binary string — split into 20-byte SHA1 hashes
             std::string raw = read_string(data, pos);
             for (size_t i = 0; i + 20 <= raw.size(); i += 20) {
+                std::cout<<"Reading each piece hash"<<std::endl;
                 std::string hash = raw.substr(i, 20);
-
+               
                 // convert each hash to hex string for easy use
                 
                 std::string hex=hexconverter(hash);
+                 std::cout<<hex<<std::endl;
+
                 // for (unsigned char c : hash) {
                 //     char buf[3];
                 //     snprintf(buf, sizeof(buf), "%02x", c);
@@ -123,11 +166,15 @@ Torrent parse_torrent(const std::string& data) {
 
         if (key == "announce") {
             t.announce = read_string(data, pos);
+            
+            std::cout<<t.announce<<" This is the Announce"<<std::endl;
         } else if (key == "created by") {
             t.created_by = read_string(data, pos);
         } else if (key == "info") {
             t.info_start=pos;
+            std::cout<<" This is the Info starting"<<std::endl;
             parse_info_dict(data, pos, t);
+            std::cout<<" This is the Info starting"<<std::endl;
             t.info_end=pos-1;
         } else {
             skip_value(data, pos);

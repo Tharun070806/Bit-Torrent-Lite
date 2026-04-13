@@ -1,3 +1,4 @@
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -5,9 +6,30 @@
 #include <arpa/inet.h>   // htonl, ntohl
 #include <sys/socket.h>  // recv, send
 #include <cstring> 
-#include "Peer.Messaging.hpp"
+#include "../utils/socket_utils.hpp"
+
+
+enum class MsgId : uint8_t {
+    Choke         = 0,
+    Unchoke       = 1,
+    Interested    = 2,
+    NotInterested = 3,
+    Have          = 4,
+    Bitfield      = 5,
+    Request       = 6,
+    Piece         = 7,
+    Cancel        = 8,
+    KeepAlive     = 255
+};
+
+struct PeerMessage {
+    MsgId                id;
+    std::vector<uint8_t> payload;
+};
 
 inline std::optional<PeerMessage> read_message(int fd) {
+
+    std::cout<<"Reading Message.."<<std::endl;
 
     uint32_t len_be = 0;
     if (!recv_exact(fd, &len_be, 4)) return std::nullopt;
@@ -35,6 +57,7 @@ inline std::optional<PeerMessage> read_message(int fd) {
 
 inline std::vector<uint8_t> build_message(MsgId id,
                                            const std::vector<uint8_t>& payload = {}) {
+    std::cout<<"building message(Any)"<<std::endl;
     // length field = 1 byte for id + however many payload bytes
     uint32_t len    = 1 + (uint32_t)payload.size();
     uint32_t len_be = htonl(len);   
@@ -63,6 +86,7 @@ inline std::vector<uint8_t> build_unchoke() {
     return build_message(MsgId::Unchoke);
 }
 inline std::vector<uint8_t> build_interested() {
+    std::cout<<"Building interested.."<<std::endl;
     return build_message(MsgId::Interested);
 }
 inline std::vector<uint8_t> build_not_interested() {
@@ -81,6 +105,7 @@ inline std::vector<uint8_t> build_have(int piece_index) {
 inline std::vector<uint8_t> build_request(int piece_index,
                                            int block_offset,
                                            int block_length) {
+    std::cout<<"Building request.."<<piece_index<<" "<<block_offset<<std::endl;
     std::vector<uint8_t> payload(12);  
 
     uint32_t pi  = htonl((uint32_t)piece_index);
@@ -102,6 +127,8 @@ inline std::vector<uint8_t> build_request(int piece_index,
 inline std::vector<uint8_t> build_piece_msg(int piece_index,
                                              int block_offset,
                                              const std::string& data) {
+                            
+                                                std::cout<<"Building piece.."<<std::endl;
     std::vector<uint8_t> payload(8 + data.size());
 
     uint32_t pi  = htonl((uint32_t)piece_index);

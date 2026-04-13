@@ -8,26 +8,11 @@
 #include <arpa/inet.h>   // htonl, ntohl
 #include <sys/socket.h>  // recv, send
 #include <cstring>       // memcpy
-#include "../utils/socket_utils.hpp"
-
-enum class MsgId : uint8_t {
-    Choke         = 0,
-    Unchoke       = 1,
-    Interested    = 2,
-    NotInterested = 3,
-    Have          = 4,
-    Bitfield      = 5,
-    Request       = 6,
-    Piece         = 7,
-    Cancel        = 8,
-    KeepAlive     = 255
-};
 
 
-struct PeerMessage {
-    MsgId                id;
-    std::vector<uint8_t> payload;
-};
+
+
+
 
 
 inline std::optional<PeerMessage> read_message(int fd) ;

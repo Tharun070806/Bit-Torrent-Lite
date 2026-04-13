@@ -1,9 +1,8 @@
-#include "Peer.handshake.hpp"
-#include <iostream>
-#include <string>
+#include "peer_handshake.hpp"
+
 
 void info_hashadder(handshake&h, Torrent &t){
-    h.info_hash=t.info_raw;
+    h.info_hash=sha1_withouthex(t.info_raw);
 }
 
 void peer_idadder(handshake&h, std::string &peerid){
@@ -36,7 +35,7 @@ std::string requestpeer(handshake &h, std::string peerip, int peerport){
 
     //sending peer message 
 
-    int socket=connect_to(peerip, peerport,6882);
+    int socket=connect_to(peerip, peerport);
     bool sent=send_all(socket,message,68);
     bool rcv=recv_exact(socket,response, 68 );
 

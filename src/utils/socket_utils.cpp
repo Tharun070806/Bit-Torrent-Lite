@@ -1,13 +1,5 @@
 #include "socket_utils.hpp"
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include<vector>
-#include <unistd.h>
-#include <cstring>
-#include <stdexcept>
-#include <iostream>
+
 
 
 int create_server_socket(int port){
@@ -44,6 +36,47 @@ int create_server_socket(int port){
 
     cout<<" Socket with port "<<port<<" is listening ......"<<endl;
     
+    return fd;
+
+}
+
+int connect_to_specific(const string &host, int port, int local_port){
+
+    addrinfo addr{}, *pnt;
+    addr.ai_family=AF_INET;
+    addr.ai_socktype=SOCK_STREAM;
+
+    if(getaddrinfo(host.c_str(), to_string(port).c_str() , &addr, &pnt )!=0){
+        cout<<" Error in DNS lookup/ host-ip matching "<<endl;
+        return -1;
+    }
+
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    sockaddr_in local_addr{};
+        local_addr.sin_family = AF_INET;
+        local_addr.sin_addr.s_addr = INADDR_ANY;  // any local IP
+        local_addr.sin_port = htons(local_port);
+
+        // allow reuse (important if reconnecting)
+        int opt = 1;
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+        if (bind(fd, (sockaddr*)&local_addr, sizeof(local_addr)) < 0) {
+            perror("bind failed");
+            close(fd);
+            return -1;
+        }
+
+    
+    
+    if(connect(fd, pnt->ai_addr, pnt->ai_addrlen)<0){
+        freeaddrinfo(pnt);
+        close(fd);
+        return -1;
+    }
+
+    freeaddrinfo(pnt);
     return fd;
 
 }

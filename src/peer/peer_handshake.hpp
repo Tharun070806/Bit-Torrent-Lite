@@ -1,7 +1,8 @@
 #pragma once
 #include<iostream>
 #include<string>
-#include "../Parser/decoder.hpp"
+#include "../utils/hasher.hpp"
+#include "../parser/decoder.hpp"
 #include "../utils/socket_utils.hpp"
 
 struct handshake{

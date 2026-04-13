@@ -9,7 +9,7 @@ std::string encode_uint32(std::uint32_t value) {
     return bytes;
 }
 
-std::uint32_t decode_uint32(const std::string& bytes, size_t offset = 0) {
+std::uint32_t decode_uint32(const std::string& bytes, size_t offset) {
     if (offset + 4 > bytes.size()) {
         throw std::runtime_error("Invalid uint32 encoding");
     }

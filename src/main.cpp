@@ -1,55 +1,10 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <thread>
-#include <mutex>
 #include <string>
-#include <vector>
-#include "./Parser/decoder.hpp"
+#include "./parser/decoder.hpp"
 #include "./utils/hasher.hpp"
-#include "./Requestor/requestor.hpp"
-#include "./utils/socket_utils.hpp"
-#include "./Peer.Messaging/Peer.handshake.hpp"
-#include "./utils/helper.hpp"
-
-
-struct MyInfo {
-    Torrent metadata;
-    std::vector<string>PeerList; //properly formatted ipv4 format ig.
-    std::string info_hash="";
-    std::string PeerId; // Myown PeerId
-    int Port; //Port That I am using to connect
-    std::string TrackerHost; //Trackers hostname (no https, no path i.e //announce)
-    int interval; 
-    int mininterval;
-    int seeders;
-    int leachers;
-};
-
-    // ── This is The Structure of Other Data structures 
-
-    //         struct Torrent {.         
-    //     std::string announce;
-    //     std::string created_by;
-    //     std::string name;
-    //     int64_t length = 0;
-    //     int64_t piece_length = 0;
-    //     int64_t info_start = 0;
-    //     int64_t info_end = 0;
-    //     std::string info_raw;
-    //     std::vector<std::string> pieces;
-    // };
-
-    //     struct TrackerResponse {
-    //     int64_t complete=0;
-    //     int64_t incomplete=0;
-    //     int interval=0;
-    //     int mininterval=0;
-    //     std::vector<std::string>peers; //properly formatted ipv4 format ig.
-    // };
-
-#define PORT 6881
-#define BUFFER_SIZE 50000
+#include "./leecher/leecher.hpp"
+#include "./seeder/seeder.hpp"
 
 int main(int argc, char* argv[]) {
 
@@ -60,110 +15,61 @@ int main(int argc, char* argv[]) {
 
     std::string command = argv[1];
 
-    MyInfo Details;
-    Details.Port=PORT;
-
-    if(command!="leecher" && command!="seeder") {
-        std::cerr << "Give proper Command"<<endl;
+    if (command == "download") {
+        command = "leecher";
     }
 
-    if(command=="seeder" && argc<4){
-        std::cerr << "seed requires: <torrent_file> <data_file>\n";
+    if ((command == "seeder" || command == "seed") && argc < 4) {
+        std::cerr << "seed/seeder requires: <torrent_file> <data_file>\n";
         return 1;
     }
 
-        std::string data = read_file(argv[2]);
-        Torrent t = parse_torrent(data);
-        Details.metadata=t;
-
-        //printing torrent details like tracker, peiece etc.. 
-
-        print_torrent(t);
-
-        std::string rawinfo = data.substr(t.info_start, t.info_end-t.info_start+1);
-        t.info_raw=rawinfo;
-        std::string info_hash=sha1(rawinfo);
-        std::string peer= (command=="leecher") ? generatePeerId(true): generatePeerId(false);
-        std::string host=extract_host(t.announce);
-        std::string path="/announce";
-        std::string request=req_url(path,peer,t,host);
-
-        int socket=connect_to(host,80);
-        bool sent = send_all(socket, request.c_str(),request.size());
-
-        char buffer [BUFFER_SIZE];
-        std::string response=recv_inf(socket);
-        close_socket(socket);
-
-        std::cout<<response<<std::endl;
-
-        int pos=response.find("\r\n\r\n");
-
-        if (pos == std::string::npos) {
-        std::cerr << "[main] bad tracker response\n";
-        return 1;
+    if(command == "encode"){
+        std::string trackerURL="http://tracker.mywaifu.best:6969/announce";
+        std::string filename=argv[2];
+        create_torrent(filename, trackerURL);
+        return 0;
     }
-        std::string body = response.substr(pos+4);
 
-        TrackerResponse ResponseFromTracker;
-        size_t dumpos=0;
-        parse_response_dict(body,dumpos,ResponseFromTracker);
-        vector<std::string>PeerList=ResponseFromTracker.peers;
+    // Determine modes and arguments
+    bool local_only = false;
+    int file_index = 2; // Default location for older commands
 
-        print_response(ResponseFromTracker);
-
-        int listening_socket=create_server_socket(PORT);
-
-        // Creating Thread List //
-
-        std::vector<std::thread> all_threads;
-        std::mutex threads_mutex;
-
-        //created the struct needed for handshake (used by both seeder and leecher )
-
-        handshake h;
-        info_hashadder(h,t);
-        peer_idadder(h,peer);
-
-        // Call the Listener program in one thread //
-        //Listener is used by both the seeder and leecher//
-        //.....//
-
-
-    if (command == "leecher") {
-
-        if(PeerList.size()==0) {
-            std::cerr << "[main] no peers from tracker"<<std::endl;
-        }
-        
-        for(auto peerip: PeerList){
-            int sep=peerip.find(':');
-            if(sep==std::string::npos) continue;
-            std::string ip   = peerip.substr(0, sep);
-            int         port = std::stoi(peerip.substr(sep + 1));
-            if (ip.empty() || port <= 0) continue;
-            int fd=connect_to(ip,port);
-            if (fd < 0) {
-                std::cerr << "[main] cannot connect to " << ip << "\n";
-                continue;
+    if (command == "leecher" || command == "seeder" || command == "seed" || command == "download") {
+        if (argc >= 4) {
+            std::string mode_str = argv[2];
+            if (mode_str == "local" || mode_str == "general") {
+                local_only = (mode_str == "local");
+                file_index = 3;
             }
-            std::cout << "[main] connected to " << ip << ":" << port << std::endl;
-            std::lock_guard<std::mutex> lock(threads_mutex);
         }
-
-        // std::string peer0Ip=peer0IpAndPort.substr(0,colonPos);
-        // std::cout<<peer0Ip<<std::endl;
-        // int peer0Port=std::stoi(peer0IpAndPort.substr(colonPos+1));
-
-        // std::string neighbourId=requestpeer(h,peer0Ip,peer0Port);
-
-        // std::cout<<neighbourId<<std::endl;
-        
     }
 
-    else if(command=="seeder"){
+    if (argc <= file_index) {
+        std::cerr << "Missing required torrent file argument." << std::endl;
+        return 1;
+    }
 
+    std::string data = read_file(argv[file_index]);
+    Torrent t = parse_torrent(data);
+
+    // Compute raw info
+    t.info_raw = data.substr(t.info_start, t.info_end - t.info_start + 1);
+
+    if (command == "info" || command == "decode") {
+        print_torrent(t);
+        return 0; 
+    }
+
+    if (command == "leecher" || command == "download") {
+        run_leecher(t, t.name, local_only);
+    } else if (command == "seeder" || command == "seed") {
+        std::string data_file = (argc > file_index + 1) ? argv[file_index + 1] : t.name;
+        run_seeder(t, data_file, local_only);
+    } else {
+        std::cerr << "Unknown command: " << command << "\n";
+        return 1;
     }
 
     return 0;
-};
+}

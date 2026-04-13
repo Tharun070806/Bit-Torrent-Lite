@@ -1,12 +1,19 @@
 #pragma once
-#include<string>
-#include<cstdint>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include<vector>
+#include <unistd.h>
+#include <cstring>
+#include <stdexcept>
+#include <iostream>
 using namespace std;
 
 int create_server_socket(int port);
 
 int connect_to(const string &host, int port);
-
+int connect_to_specific(const string &host, int port, int local_port);
 bool recv_exact(int fd, void* buf, size_t n);
 
 bool send_all(int fd, const void* buf, size_t n);

@@ -35,7 +35,7 @@ void skip_value(const std::string& data, size_t& pos);
 
 void parse_info_dict(const std::string& data, size_t& pos, Torrent& t);
 Torrent parse_torrent(const std::string& data);
-
+void create_torrent(const std::string& filename, const std::string& tracker_url);
 std::string hexconverter(const std::string& hash);
 
 void print_torrent(const Torrent& t);

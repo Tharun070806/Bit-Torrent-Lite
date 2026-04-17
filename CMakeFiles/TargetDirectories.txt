@@ -1,0 +1,3 @@
+/users/ug24/2403323/Downloads/Bit-Torrent-Lite-main/build/CMakeFiles/BitTorrentClient.dir
+/users/ug24/2403323/Downloads/Bit-Torrent-Lite-main/build/CMakeFiles/edit_cache.dir
+/users/ug24/2403323/Downloads/Bit-Torrent-Lite-main/build/CMakeFiles/rebuild_cache.dir

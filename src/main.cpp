@@ -53,6 +53,8 @@ int main(int argc, char* argv[]) {
     std::string data = read_file(argv[file_index]);
     Torrent t = parse_torrent(data);
 
+    print_torrent(t);
+
     // Compute raw info
     t.info_raw = data.substr(t.info_start, t.info_end - t.info_start + 1);
 

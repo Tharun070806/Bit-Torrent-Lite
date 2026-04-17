@@ -187,7 +187,7 @@ void recv_inf(std::string &response, char*buffer,int socket){
 
     std::string recv_inf(int socket_fd) {
     std::string data;
-    std::array<char, 4096> buffer{};
+    std::vector<char>buffer(4096);
     while (true) {
         ssize_t bytes_read = recv(socket_fd, buffer.data(), buffer.size(), 0);
         if (bytes_read == 0) {

@@ -1,6 +1,7 @@
 #pragma once
 #include<string>
 #include<iomanip>
+#include<cstdint>
 #include "../parser/decoder.hpp"
 #include "../utils/hasher.hpp"
 

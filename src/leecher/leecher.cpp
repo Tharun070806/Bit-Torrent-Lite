@@ -90,7 +90,7 @@ void run_leecher(Torrent& t, std::string data_file, bool local_only) {
     lpd_broadcaster.detach();
     lpd_listener_th.detach();
 
-    PeerList.push_back("127.0.0.1:6882");
+
     
     if(PeerList.size() == 0 && !local_only) {
         std::cerr << "[leecher] no peers from tracker" << std::endl;
@@ -100,6 +100,7 @@ void run_leecher(Torrent& t, std::string data_file, bool local_only) {
     }
     
     std::vector<int> SocketList;
+    PeerList.push_back("10.196.57.60:6882");
     for(auto peerip : PeerList) {
         int sep = peerip.find(':');
         if(sep == std::string::npos) continue;

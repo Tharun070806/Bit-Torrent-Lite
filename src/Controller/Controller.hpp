@@ -111,15 +111,10 @@ class Controller{
         if (mode == Mode::SEEDER) return std::nullopt;
 
         for (int i = 0; i < total_pieces; i++) {
-            std::cout<<"I have to send any piece if there.."<<std::endl;
-            std::cout<<"inflight of piece 0 of manager: "<<inflight[0].size()<<std::endl;
-            std::cout<<"inflight of piece 1 of manager: "<<inflight[1].size()<<std::endl;
-            std::cout<<"inflight of piece 2 of manager: "<<inflight[2].size()<<std::endl;
+   
+
             if (!bit_field[i]) continue;
             if (piece_status[i] == 1) continue;
-            
-
-            std::cout<<piece_length<<"piece length"<<std::endl;
 
             int num_blocks=count_blocks(i);
             int piece_len=piece_length_for(i);
@@ -132,7 +127,7 @@ class Controller{
                 inflight[i].insert(offset);
                 piece_status[i] = 2;
                 int len = std::min(block_length, piece_len - offset);
-                std::cout<<i<<" i "<<b<<" b "<<len<<std::endl;
+                // std::cout<<i<<" i "<<b<<" b "<<len<<std::endl;
                 return BlockRequest{i, offset, len};
             }
         }
@@ -235,7 +230,12 @@ class Controller{
         }
 
         write_to_disk( piece_index, piece);
+        piece_blocks[piece_index].clear();
         piece_status[piece_index]=1;
+
+         for (auto& [peer_id, have_list] : send_haves) {
+            send_haves[peer_id].push_back(piece_index);
+        }
 
         std::cout<<"Checking which pieces are there...."<<std::endl;
         for(int i=0;i<total_pieces;i++){

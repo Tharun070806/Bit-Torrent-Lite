@@ -12,7 +12,7 @@
 #include "../lpd/lpd.hpp"
 #include "../peer/peer.hpp"
 
-#define PORT 6882
+#define PORT 6881
 #define BUFFER_SIZE 50000
 
 void run_seeder(Torrent& t, std::string data_file, bool local_only) {

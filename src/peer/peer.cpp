@@ -296,6 +296,8 @@ void run_peer_loop(int fd, int peer_id, PeerState& state,
 void peer_worker(int fd, const handshake& h, Controller& manager,
                  const std::string& peer_ip, int peer_port) {
 
+    // Each new peer will be given a unique ID, which will be used to identify the peer
+
     int peer_id = manager.register_peer();
     PeerState state;
     state.peer_bitfield.resize(manager.total_pieces, false);

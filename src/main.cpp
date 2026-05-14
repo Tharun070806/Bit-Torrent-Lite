@@ -8,8 +8,45 @@
 
 int main(int argc, char* argv[]) {
 
+    auto print_usage = [&]() {
+        std::cout
+            << "\n"
+            << "  BitTorrent Lite — usage:\n"
+            << "  ─────────────────────────────────────────────────────────────\n"
+            << "  " << argv[0] << " encode  <file>                          Create a .torrent file\n"
+            << "  " << argv[0] << " info    <torrent_file>                   Show torrent metadata\n"
+            << "  " << argv[0] << " leecher [general|local] <torrent_file>  Download a file\n"
+            << "  " << argv[0] << " seeder  [general|local] <torrent>  <data_file>  Seed a file\n"
+            << "\n"
+            << "  Aliases: download = leecher   seed = seeder   decode = info\n"
+            << "\n"
+            << "  Modes:\n"
+            << "    general  Use tracker + Local Peer Discovery (default)\n"
+            << "    local    LPD only — skip tracker, LAN peers only\n"
+            << "\n"
+            << "  Examples:\n"
+            << "    " << argv[0] << " encode           video.mp4\n"
+            << "    " << argv[0] << " info             video.mp4.torrent\n"
+            << "    " << argv[0] << " leecher general  video.mp4.torrent\n"
+            << "    " << argv[0] << " leecher local    video.mp4.torrent\n"
+            << "    " << argv[0] << " seeder  general  video.mp4.torrent  video.mp4\n"
+            << "    " << argv[0] << " seeder  local    video.mp4.torrent  video.mp4\n"
+            << "  ─────────────────────────────────────────────────────────────\n"
+            << "\n";
+    };
+
+    if (argc < 2) {
+        print_usage();
+        return 1;
+    }
+
+    if (std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h") {
+        print_usage();
+        return 0;
+    }
+
     if (argc < 3) {
-        std::cerr << "Usage: " << argv[0] << " info <torrent_file>\n";
+        print_usage();
         return 1;
     }
 
@@ -52,7 +89,7 @@ int main(int argc, char* argv[]) {
 
     std::string data = read_file(argv[file_index]);
     Torrent t = parse_torrent(data);
-
+    print_torrent(t);
     // Compute raw info
     t.info_raw = data.substr(t.info_start, t.info_end - t.info_start + 1);
 

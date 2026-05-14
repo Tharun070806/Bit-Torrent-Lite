@@ -4,13 +4,10 @@
 #include <sstream>
 #include<unordered_map>
 #include "../utils/hasher.hpp"
-// ─── File reader 
 
-// Helper to convert binary SHA1 to hex string if needed
-// Torrent files use binary strings for the 'pieces' field, but hex is common for debugging
 
 void create_torrent(const std::string& filename, const std::string& tracker_url) {
-    std::ifstream file(filename, std::ios::binary | std::ios::ate);
+    std::ifstream file(filename, std::ios::binary | std::ios::ate); //ate -> (at the end )automatically move sthe cursor to the end position
     if (!file.is_open()) return;
 
     long long file_size = file.tellg();
@@ -139,12 +136,6 @@ void parse_info_dict(const std::string& data, size_t& pos, Torrent& t) {
                 
                 std::string hex=hexconverter(hash);
                  std::cout<<hex<<std::endl;
-
-                // for (unsigned char c : hash) {
-                //     char buf[3];
-                //     snprintf(buf, sizeof(buf), "%02x", c);
-                //     hex += buf;
-                // }
                 t.pieces.push_back(hex);
             }
         } else {
@@ -223,7 +214,7 @@ void parse_response_dict(const std::string& data, size_t& pos, TrackerResponse &
     pos++; // skip 'e'
 }
 
-// ─── Print everything 
+
 
 void print_torrent(const Torrent& t) {
     std::cout << "Tracker URL  : " << t.announce      << "\n";
@@ -237,6 +228,7 @@ void print_torrent(const Torrent& t) {
         std::cout << "  [" << i + 1 << "] " << t.pieces[i] << "\n";
     }
 }
+
 void print_response(const TrackerResponse& t) {
     std::cout << "complete  : " << t.complete      << "\n";
     std::cout << "incomplete   : " << t.incomplete    << "\n";

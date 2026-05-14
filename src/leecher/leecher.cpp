@@ -12,7 +12,7 @@
 #include "../lpd/lpd.hpp"
 #include "../peer/peer.hpp"
 
-#define PORT 6882
+#define PORT 6881
 #define BUFFER_SIZE 50000
 
 void run_leecher(Torrent& t, std::string data_file, bool local_only) {
@@ -90,7 +90,7 @@ void run_leecher(Torrent& t, std::string data_file, bool local_only) {
     lpd_broadcaster.detach();
     lpd_listener_th.detach();
 
-    PeerList.push_back("127.0.0.1:6882");
+    // PeerList.push_back("127.0.0.1:6882");
     
     if(PeerList.size() == 0 && !local_only) {
         std::cerr << "[leecher] no peers from tracker" << std::endl;

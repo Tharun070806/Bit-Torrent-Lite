@@ -14,7 +14,7 @@ void lpd_broadcast_thread(std::string info_hash_hex, int tcp_port, std::string m
     int sock = socket(AF_INET, SOCK_DGRAM, 0); 
     if (sock < 0) return;
 
-    // Local TTL = 1 exactly keeps the traffic to current subnet
+   
     int ttl = 1;
     setsockopt(sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
 
@@ -44,7 +44,7 @@ void lpd_listen_thread(std::string my_info_hash, std::string my_cookie, const ha
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) return;
 
-    // Permit multiple local instances bindings to same UDP listen port
+   
     int reuse = 1;
     setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(reuse));
 
@@ -71,7 +71,7 @@ void lpd_listen_thread(std::string my_info_hash, std::string my_cookie, const ha
 
     std::cout << "[LPD] Listener thread actively scanning for LAN peers.\n";
     char buffer[2048];
-    std::unordered_set<std::string> known_peers; // Prevents duplicate connections
+    std::unordered_set<std::string> known_peers; 
 
     while(true) {
         sockaddr_in sender_addr{};
@@ -83,14 +83,14 @@ void lpd_listen_thread(std::string my_info_hash, std::string my_cookie, const ha
         buffer[bytes] = '\0';
         std::string payload(buffer);
 
-        // Very brief parser
+   
         size_t infohash_pos = payload.find("Infohash: ");
         size_t port_pos = payload.find("Port: ");
         size_t cookie_pos = payload.find("cookie: ");
 
         if (infohash_pos != std::string::npos && port_pos != std::string::npos) {
             
-            std::string extracted_hash = payload.substr(infohash_pos + 10, 40); // Hash is 40 hex chars length usually
+            std::string extracted_hash = payload.substr(infohash_pos + 10, 40); 
             
             size_t port_end = payload.find("\r", port_pos);
             int peer_tcp_port = std::stoi(payload.substr(port_pos + 6, port_end - (port_pos + 6)));
@@ -102,16 +102,16 @@ void lpd_listen_thread(std::string my_info_hash, std::string my_cookie, const ha
             }
 
             if (extracted_cookie == my_cookie) {
-                continue; // Ignore our own broadcast silently
+                continue; 
             }
 
             if (extracted_hash == my_info_hash) {
                 std::string peer_ip = inet_ntoa(sender_addr.sin_addr);
                 std::string identifier = peer_ip + ":" + std::to_string(peer_tcp_port);
 
-                // Check if we are already connected to them
+           
                 if (known_peers.find(identifier) != known_peers.end()) {
-                    continue; // Skip reconnecting
+                    continue; 
                 }
                 
                 known_peers.insert(identifier);

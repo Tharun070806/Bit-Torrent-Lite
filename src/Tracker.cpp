@@ -14,7 +14,7 @@
 
 using namespace std;
 
-// ---------------- PARSE QUERY ----------------
+
 unordered_map<string, string> parse_query(const string& query) {
     unordered_map<string, string> params;
 
@@ -38,11 +38,11 @@ unordered_map<string, string> parse_query(const string& query) {
     return params;
 }
 
-// ---------------- BUILD BENCODE RESPONSE ----------------
+
 string build_tracker_response() {
     string peers;
 
-    // example: 127.0.0.1:6881
+ 
     peers.push_back(127);
     peers.push_back(0);
     peers.push_back(0);
@@ -65,7 +65,6 @@ string build_tracker_response() {
     return body;
 }
 
-// ---------------- HANDLE CLIENT ----------------
 void handle_client(int client_fd) {
     char buffer[4096];
     string request;
@@ -86,12 +85,12 @@ void handle_client(int client_fd) {
 
     auto params = parse_query(query);
 
-    // DEBUG: print parsed params
+   
     for (auto& [k, v] : params) {
         cout << k << " = " << v << endl;
     }
 
-    // build response
+    
     string body = build_tracker_response();
 
     string response =
@@ -107,7 +106,7 @@ void handle_client(int client_fd) {
     close_socket(client_fd);
 }
 
-// ---------------- MAIN SERVER LOOP ----------------
+
 int main() {
     int server_fd = create_server_socket(8080);
 
